@@ -23,7 +23,7 @@ class BYOLVideoClassifier(nn.Module):
     def __init__(self, num_classes=5, feature_dim=512, dropout=0.5):
         super().__init__()
         self.encoder = r3d_18(weights=None)
-        self.encoder.fc = nn.Identity()  # Remove original fc → 512-dim features
+        self.encoder.fc = nn.Identity()
         self.head = nn.Sequential(
             nn.Dropout(dropout),
             nn.Linear(feature_dim, num_classes),
@@ -31,4 +31,33 @@ class BYOLVideoClassifier(nn.Module):
 
     def forward(self, x):
         features = self.encoder(x)
+        return self.head(features)
+
+
+class DINOv3Encoder(nn.Module):
+    def __init__(self, hf_model):
+        super().__init__()
+        self.model = hf_model
+
+    def forward(self, x):
+        outputs = self.model(pixel_values=x)
+        return outputs.pooler_output
+
+
+class DINOVideoClassifier(nn.Module):
+    def __init__(self, encoder, embed_dim, num_classes=5, dropout=0.3):
+        super().__init__()
+        self.encoder = encoder
+        self.embed_dim = embed_dim
+        self.head = nn.Sequential(
+            nn.LayerNorm(embed_dim),
+            nn.Dropout(dropout),
+            nn.Linear(embed_dim, num_classes),
+        )
+
+    def forward(self, video_frames):
+        B, T, C, H, W = video_frames.shape
+        frames_flat = video_frames.reshape(B * T, C, H, W)
+        features_flat = self.encoder(frames_flat)  # [B*T, embed_dim]
+        features = features_flat.reshape(B, T, -1).mean(dim=1)  # [B, embed_dim]
         return self.head(features)
