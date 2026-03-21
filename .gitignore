@@ -1,3 +1,4 @@
 .env
 /venv
 backend/model/*.pth
+backend/__pycache__/
