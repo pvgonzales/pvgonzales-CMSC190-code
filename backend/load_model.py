@@ -152,3 +152,75 @@ class ModelManager:
         model.eval()
         transform = get_byol_transform()
         return model, transform
+
+    def _load_dino(self):
+        from transformers import AutoModel
+        from huggingface_hub import login as hf_login
+
+        hf_token = os.environ.get("HF_TOKEN")
+        if hf_token:
+            hf_login(token=hf_token)
+            logger.info("HuggingFace authenticated with HF_TOKEN.")
+        else:
+            logger.warning("HF_TOKEN environment variable not set. ")
+
+        DINOV3_HF_MODEL = 'facebook/dinov3-vits16-pretrain-lvd1689m'
+        logger.info(f"loading DINOv3 from HuggingFace: {DINOV3_HF_MODEL}")
+
+        hf_model = AutoModel.from_pretrained(DINOV3_HF_MODEL)
+        vit_encoder = DINOv3Encoder(hf_model)
+        embed_dim = hf_model.config.hidden_size
+
+        model = DINOVideoClassifier(
+            encoder=vit_encoder,
+            embed_dim=embed_dim,
+            num_classes=5,
+            dropout=0.3,
+        )
+
+        dino_weights_path = os.path.join(self.models_dir, "dinov3_model.pth")
+        if os.path.exists(dino_weights_path):
+            logger.info(f"Loading DINO model weights: {dino_weights_path}")
+            ckpt = torch.load(dino_weights_path, map_location=self.device, weights_only=False)
+            model.load_state_dict(ckpt['model_state_dict'])
+            logger.info("DINO model loaded.")
+        else:
+            logger.warning(f"No DINO weights at {dino_weights_path}. ")
+
+        model = model.to(self.device)
+        model.eval()
+        transform = get_dino_transform()
+        return model, transform
+
+    @torch.no_grad()
+    def predict_clip(self, model_id: str, frames: list[Image.Image]) -> dict:
+        model, transform = self.load_model(model_id)
+        model_info = next(m for m in self.available_models if m['id'] == model_id)
+
+        tensors = [transform(frame) for frame in frames]
+
+        if model_info['input_format'] == 'clip':
+            clip = torch.stack(tensors, dim=1)
+            clip = clip.unsqueeze(0).to(self.device)
+        else:
+            clip = torch.stack(tensors, dim=0)
+            clip = clip.unsqueeze(0).to(self.device)
+
+        logits = model(clip)
+        probs = torch.softmax(logits.float(), dim=1).cpu().numpy()[0]
+
+        pred_idx = int(np.argmax(probs))
+        pred_class = CLASS_NAMES[pred_idx]
+        confidence = float(probs[pred_idx])
+
+        class_scores = {
+            CLASS_NAMES[i]: float(probs[i]) for i in range(len(CLASS_NAMES))
+        }
+
+        return {
+            'prediction': pred_class,
+            'confidence': confidence,
+            'class_scores': class_scores,
+            'color': CLASS_COLORS[pred_class],
+            'is_crime': pred_class != 'Normal',
+        }
