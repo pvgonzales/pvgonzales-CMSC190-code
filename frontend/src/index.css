@@ -1,7 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Color Palette - matching provided palette */
   --bg-primary: #393E46;
   --bg-secondary: #222831;
   --bg-card: #222831;
@@ -20,14 +19,12 @@
   --gold-hover: #e0b23e;
   --gold-dark: #c9a035;
 
-  /* Crime severity colors */
   --color-normal: #10b981;
   --color-assault: #ef4444;
   --color-abuse: #f59e0b;
   --color-robbery: #a855f7;
   --color-shooting: #3b82f6;
 
-  /* Sizing */
   --radius-sm: 10px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -61,9 +58,7 @@ body {
 }
 
 
-/* ==========================================
-   NAVBAR
-   ========================================== */
+/* NAVBAR */
 .navbar {
   display: flex;
   align-items: center;
@@ -132,15 +127,11 @@ body {
 }
 
 
-/* ==========================================
-   LANDING PAGE
-   ========================================== */
+/* LANDING PAGE */
 .landing-page {
   flex: 1;
 }
 
-
-/* ---- Hero Section ---- */
 .hero-section {
   min-height: calc(100vh - var(--navbar-height));
   display: flex;
@@ -209,7 +200,7 @@ body {
 }
 
 
-/* ---- About Section ---- */
+/* ABOUT PAGE */
 .about-section {
   padding: 100px 80px 0px;
   background: var(--bg-primary);
@@ -256,18 +247,19 @@ body {
 }
 
 
-/* ---- Methods Section ---- */
+/* METHODS PAGE */
 .methods-section {
-  padding: 50px 80px;
+  padding: 0px 80px 100px;
   background: var(--bg-primary);
   text-align: center;
+  scroll-margin-top: var(--navbar-height);
 }
 
 .methods-title {
   font-size: 48px;
   font-weight: 700;
   color: var(--gold);
-  margin-bottom: 60px;
+  margin-bottom: 20px;
   letter-spacing: 0.5px;
 }
 
