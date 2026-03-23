@@ -905,3 +905,116 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* WEBCAM VIEW */
+.webcam-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.webcam-viewport {
+  position: relative;
+  width: 100%;
+  background: transparent;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  max-height: calc(100vh - var(--navbar-height) - 175px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.webcam-viewport video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+}
+
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-dot 1s infinite;
+}
+
+.webcam-placeholder-zone {
+  border: 2px dashed var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+  gap: 16px;
+  padding: 48px;
+  color: var(--text-muted);
+}
+
+.webcam-placeholder-zone img {
+  height: 80px;
+}
+
+.webcam-placeholder-zone:hover {
+  border-color: var(--gold);
+  background: rgba(232, 183, 74, 0.03);
+}
+
+.webcam-error {
+  position: relative;
+  z-index: 1;
+  color: #ef4444;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.webcam-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.btn-stop {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-stop:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
