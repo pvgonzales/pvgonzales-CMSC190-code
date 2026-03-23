@@ -191,3 +191,97 @@ async def health_check():
         "device": str(get_model_manager().device),
         "models_available": [m["id"] for m in get_model_manager().get_available_models()],
     }
+
+#websocket for real time video
+@app.websocket("/ws/realtime")
+async def websocket_realtime(websocket: WebSocket):
+    await websocket.accept()
+    logger.info("WebSocket client connected")
+
+    mm = get_model_manager()
+    model_id = "byol"
+    frame_buffer = []
+    buffer_stride = 4
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+                if isinstance(msg, dict):
+                    action = msg.get("action", "")
+
+                    if action == "start":
+                        model_id = msg.get("model", "byol")
+                        frame_buffer = []
+                        logger.info(f"Started real-time with model: {model_id}")
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": f"Started with {model_id}",
+                            "model": model_id,
+                        })
+                        continue
+
+                    elif action == "stop":
+                        frame_buffer = []
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": "Stopped",
+                        })
+                        continue
+
+                    elif action == "frame":
+                        b64_str = msg.get("data", "")
+                    else:
+                        continue
+                else:
+                    b64_str = raw
+            except json.JSONDecodeError:
+                b64_str = raw
+
+            #decode frame
+            try:
+                if "," in b64_str:
+                    b64_str = b64_str.split(",", 1)[1]
+                img_bytes = base64.b64decode(b64_str)
+                img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                frame_buffer.append(img)
+            except Exception as e:
+                logger.error(f"Failed to decode frame: {e}")
+                continue
+
+            #send buffer status
+            await websocket.send_json({
+                "type": "buffer",
+                "buffered": len(frame_buffer),
+                "needed": CLIP_LENGTH,
+            })
+
+            # if there are enough frames, run prediction
+            if len(frame_buffer) >= CLIP_LENGTH:
+                clip = frame_buffer[:CLIP_LENGTH]
+
+                try:
+                    result = mm.predict_clip(model_id, clip)
+                    await websocket.send_json({
+                        "type": "prediction",
+                        **result,
+                    })
+                except Exception as e:
+                    logger.error(f"Inference error: {e}")
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": str(e),
+                    })
+
+                #slide the window forward
+                frame_buffer = frame_buffer[buffer_stride:]
+
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        try:
+            await websocket.close()
+        except Exception:
+            pass
