@@ -182,3 +182,12 @@ async def upload_video(
 
     finally:
         os.unlink(tmp_path)
+        
+#get endpoint to check the health of backend
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "ok",
+        "device": str(get_model_manager().device),
+        "models_available": [m["id"] for m in get_model_manager().get_available_models()],
+    }
