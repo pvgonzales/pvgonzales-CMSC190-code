@@ -335,3 +335,151 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(232, 183, 74, 0.3);
 }
+
+
+/* ANALYZE PAGE */
+.analyze-page {
+  flex: 1;
+  padding-top: 32px;
+  padding-left: 60px;
+  padding-right: 60px;
+  padding-bottom: 0px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: calc(100vh - var(--navbar-height));
+  overflow: hidden;
+  margin-bottom: 0px;
+}
+
+.analyze-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.analyze-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.analyze-tab {
+  padding: 12px 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.analyze-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+
+.analyze-tab.active {
+  background: var(--gold);
+  color: var(--bg-secondary);
+  font-weight: 700;
+}
+
+.analyze-model-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.model-label {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.analyze-model-select select {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 12px 36px 12px 20px;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  min-width: 160px;
+  transition: border-color 0.2s;
+  appearance: none; 
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.analyze-model-select::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23eeeeee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.analyze-model-select select:focus {
+  border-color: var(--gold);
+}
+
+.analyze-model-select select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.backend-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 20px;
+  font-size: 13px;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backend-banner code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.analyze-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+  .analyze-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analyze-main {
+  min-height: 0;
+}
+
+.analyze-sidebar {
+  min-height: 0;
+}
