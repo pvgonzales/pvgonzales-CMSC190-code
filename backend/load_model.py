@@ -5,10 +5,13 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 from torchvision.models.video import r3d_18
+from huggingface_hub import hf_hub_download # IMPORT ADDED
 import logging
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
-
+load_dotenv()
+HF_REPO_ID = os.environ.get("HF_REPO_ID")
 CLASS_NAMES = ['Normal', 'Assault', 'Abuse', 'Robbery', 'Shooting']
 CLASS_COLORS = {
     'Normal': '#2ecc71',
@@ -62,7 +65,7 @@ class DINOVideoClassifier(nn.Module):
         features = features_flat.reshape(B, T, -1).mean(dim=1)  # [B, embed_dim]
         return self.head(features)
 
-#preprocessing pipeline
+# preprocessing pipeline
 def get_byol_transform():
     return transforms.Compose([
         transforms.Resize((224, 224)),
@@ -80,7 +83,7 @@ def get_dino_transform():
     ])
 
 
-#manages the loading for BYOL and DINOv3
+# manages the loading for BYOL and DINOv3
 class ModelManager:
     def __init__(self, models_dir: str = "model"):
         self.models_dir = models_dir
@@ -103,7 +106,6 @@ class ModelManager:
         })
 
         try:
-            import transformers
             self.available_models.append({
                 "id": "dino",
                 "name": "DINOv3 (ViT-S/16)",
@@ -134,15 +136,26 @@ class ModelManager:
 
     def _load_byol(self):
         model = BYOLVideoClassifier(num_classes=5, dropout=0.5)
-
         byol_weights_path = os.path.join(self.models_dir, "byol_model.pth")
+
+        if not os.path.exists(byol_weights_path):
+            try:
+                logger.info(f"Downloading BYOL weights from {HF_REPO_ID}...")
+                byol_weights_path = hf_hub_download(
+                    repo_id=HF_REPO_ID, 
+                    filename="byol_model.pth", 
+                    local_dir=self.models_dir
+                )
+            except Exception as e:
+                logger.error(f"Failed to download BYOL model from Hugging Face: {e}")
+                
         if os.path.exists(byol_weights_path):
             logger.info(f"Loading BYOL model weights: {byol_weights_path}")
             ckpt = torch.load(byol_weights_path, map_location=self.device, weights_only=False)
             model.load_state_dict(ckpt['model_state_dict'])
             logger.info("BYOL model loaded.")
         else:
-            logger.warning(f"No BYOL weights at {byol_weights_path}. ")
+            logger.warning(f"No BYOL weights at {byol_weights_path}. Falling back to pre-trained weights.")
             from torchvision.models.video import R3D_18_Weights
             pretrained = r3d_18(weights=R3D_18_Weights.KINETICS400_V1)
             pretrained.fc = nn.Identity()
@@ -162,7 +175,7 @@ class ModelManager:
             hf_login(token=hf_token)
             logger.info("HuggingFace authenticated with HF_TOKEN.")
         else:
-            logger.warning("HF_TOKEN environment variable not set. ")
+            logger.warning("HF_TOKEN environment variable not set.")
 
         DINOV3_HF_MODEL = 'facebook/dinov3-vits16-pretrain-lvd1689m'
         logger.info(f"loading DINOv3 from HuggingFace: {DINOV3_HF_MODEL}")
@@ -179,13 +192,25 @@ class ModelManager:
         )
 
         dino_weights_path = os.path.join(self.models_dir, "dinov3_model.pth")
+
+        if not os.path.exists(dino_weights_path):
+            try:
+                logger.info(f"Downloading DINOv3 weights from {HF_REPO_ID}...")
+                dino_weights_path = hf_hub_download(
+                    repo_id=HF_REPO_ID, 
+                    filename="dinov3_model.pth", 
+                    local_dir=self.models_dir
+                )
+            except Exception as e:
+                logger.error(f"Failed to download DINOv3 model from Hugging Face: {e}")
+
         if os.path.exists(dino_weights_path):
             logger.info(f"Loading DINO model weights: {dino_weights_path}")
             ckpt = torch.load(dino_weights_path, map_location=self.device, weights_only=False)
             model.load_state_dict(ckpt['model_state_dict'])
             logger.info("DINO model loaded.")
         else:
-            logger.warning(f"No DINO weights at {dino_weights_path}. ")
+            logger.warning(f"No DINO weights at {dino_weights_path}. Model heads will be uninitialized.")
 
         model = model.to(self.device)
         model.eval()
@@ -224,3 +249,4 @@ class ModelManager:
             'color': CLASS_COLORS[pred_class],
             'is_crime': pred_class != 'Normal',
         }
+        
