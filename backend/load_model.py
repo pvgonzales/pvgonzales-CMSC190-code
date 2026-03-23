@@ -177,7 +177,7 @@ class ModelManager:
         else:
             logger.warning("HF_TOKEN environment variable not set.")
 
-        DINOV3_HF_MODEL = 'facebook/dinov3-vits16-pretrain-lvd1689m'
+        DINOV3_HF_MODEL = os.environ.get("DINOV3_HF_MODEL")
         logger.info(f"loading DINOv3 from HuggingFace: {DINOV3_HF_MODEL}")
 
         hf_model = AutoModel.from_pretrained(DINOV3_HF_MODEL)

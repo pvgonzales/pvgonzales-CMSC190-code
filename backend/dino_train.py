@@ -15,6 +15,8 @@ from torchvision.transforms import functional as TF
 from PIL import Image
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
+load_dotenv()
 
 #gpu optimizations
 torch.backends.cudnn.benchmark = True
@@ -287,7 +289,7 @@ if __name__ == '__main__':
     OUT_DIM = 4096
 
     #DINOv3 setup
-    DINOV3_HF_MODEL = 'facebook/dinov3-vits16-pretrain-lvd1689m'
+    DINOV3_HF_MODEL = os.environ.get("DINOV3_HF_MODEL")
     STUDENT_TEMP = 0.1
     TEACHER_TEMP = 0.04
     WARMUP_TEACHER_TEMP = 0.04
