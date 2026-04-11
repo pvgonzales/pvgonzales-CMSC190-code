@@ -207,7 +207,21 @@ class ModelManager:
         if os.path.exists(dino_weights_path):
             logger.info(f"Loading DINO model weights: {dino_weights_path}")
             ckpt = torch.load(dino_weights_path, map_location=self.device, weights_only=False)
-            model.load_state_dict(ckpt['model_state_dict'])
+            saved_state = ckpt['model_state_dict']
+            model_keys = set(model.state_dict().keys())
+            saved_keys = set(saved_state.keys())
+
+            if not saved_keys.issubset(model_keys):
+                remapped_state = {}
+                for key, value in saved_state.items():
+                    new_key = key
+                    if key.startswith("encoder.model.layer"):
+                        new_key = key.replace("encoder.model.layer", "encoder.model.model.layer", 1)
+                    elif key.startswith("encoder.model.model.layer"):
+                        new_key = key.replace("encoder.model.model.layer", "encoder.model.layer", 1)
+                    remapped_state[new_key] = value
+                saved_state = remapped_state
+            model.load_state_dict(saved_state)
             logger.info("DINO model loaded.")
         else:
             logger.warning(f"No DINO weights at {dino_weights_path}. Model heads will be uninitialized.")
