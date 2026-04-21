@@ -106,7 +106,7 @@ export default function LandingPage() {
             </div>
             <p className="method-description">
               This study implements and compares two Self-Supervised Learning (SSL) frameworks: 
-              the CNN-based BYOL (ResNet-50) and the transformer-based DINOv3 (ViT). 
+              the CNN-based BYOL (3D ResNet-18) and the transformer-based DINOv3 (ViT). 
               This setup allows for a direct performance comparison between these architectures 
               for detecting suspicious behavior in raw surveillance footage.
             </p>
