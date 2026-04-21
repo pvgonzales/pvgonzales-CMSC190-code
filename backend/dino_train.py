@@ -1,4 +1,8 @@
 import os
+import time
+import threading
+import subprocess
+import psutil
 import shutil
 import math
 import random
@@ -271,6 +275,69 @@ def dino_collate_fn(batch):
     return collated_views, labels
 
 
+class ResourceMonitor:
+    def __init__(self, interval=5):
+        self.interval = interval
+        self.running = False
+        self.thread = None
+        self.gpu_util_samples = []
+        self.gpu_mem_samples = []
+        self.cpu_samples = []
+        self.ram_samples = []
+        self.gpu_total_mem = None
+        self.ram_total = None
+
+    def _sample(self):
+        while self.running:
+            try:
+                result = subprocess.run(
+                    ['nvidia-smi', '--query-gpu=utilization.gpu,memory.used,memory.total',
+                     '--format=csv,noheader,nounits'],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0:
+                    parts = result.stdout.strip().split(',')
+                    self.gpu_util_samples.append(float(parts[0].strip()))
+                    self.gpu_mem_samples.append(float(parts[1].strip()))
+                    self.gpu_total_mem = float(parts[2].strip())
+            except Exception:
+                pass
+
+            self.cpu_samples.append(psutil.cpu_percent())
+            ram = psutil.virtual_memory()
+            self.ram_samples.append(ram.used / (1024 ** 3))
+            self.ram_total = ram.total / (1024 ** 3)
+
+            time.sleep(self.interval)
+
+    def start(self):
+        self.running = True
+        self.thread = threading.Thread(target=self._sample, daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        self.running = False
+        if self.thread:
+            self.thread.join(timeout=10)
+
+    def summary(self):
+        print("  RESOURCE UTILIZATION")
+        if self.gpu_util_samples:
+            avg_gpu = sum(self.gpu_util_samples) / len(self.gpu_util_samples)
+            print(f"  GPU Utilization  — Avg: {avg_gpu:.1f}%   Peak: {max(self.gpu_util_samples):.1f}%")
+        if self.gpu_mem_samples and self.gpu_total_mem:
+            peak_mem = max(self.gpu_mem_samples) / 1024
+            total_mem = self.gpu_total_mem / 1024
+            print(f"  GPU Memory       — Peak: {peak_mem:.1f} / {total_mem:.1f} GiB ({peak_mem/total_mem*100:.1f}%)")
+        if self.cpu_samples:
+            avg_cpu = sum(self.cpu_samples) / len(self.cpu_samples)
+            print(f"  CPU Utilization  — Avg: {avg_cpu:.1f}%   Peak: {max(self.cpu_samples):.1f}%")
+        if self.ram_samples and self.ram_total:
+            peak_ram = max(self.ram_samples)
+            print(f"  RAM Usage        — Peak: {peak_ram:.1f} / {self.ram_total:.1f} GB ({peak_ram/self.ram_total*100:.1f}%)")
+        print(f"  Samples collected: {len(self.gpu_util_samples)}")
+
+
 #main program
 if __name__ == '__main__':
     ROOT_DIR = '/content/dataset/'
@@ -303,8 +370,10 @@ if __name__ == '__main__':
     from huggingface_hub import login
     from transformers import AutoModel, AutoImageProcessor
 
+    hf_token = os.environ.get("HF_TOKEN")
     try:
-        login(token="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")
+        if hf_token:
+            login(token=hf_token)
     except Exception:
         print("HF login failed")
 
@@ -408,6 +477,9 @@ if __name__ == '__main__':
     #start the training loop
     start_epoch = 0
     global_step = 0
+    monitor = ResourceMonitor(interval=5)
+    monitor.start()
+    train_start_time = time.time()
     checkpoints = glob.glob(f"{CHECKPOINT_DIR}*.pth")
 
     epoch_losses = []
@@ -471,3 +543,10 @@ if __name__ == '__main__':
         }, f"{CHECKPOINT_DIR}dino_ckpt_e{epoch}_s{len(train_loader)}.pth")
 
         print(f"Epoch {epoch} Average Loss: {avg_loss:.4f}")
+
+    train_elapsed = time.time() - train_start_time
+    monitor.stop()
+    hours, remainder = divmod(train_elapsed, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    print(f"\nTotal training runtime: {train_elapsed:.2f}s ({int(hours)}h {int(minutes)}m {seconds:.2f}s)")
+    monitor.summary()

@@ -21,6 +21,8 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay,
 )
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
+load_dotenv()
 
 #gpu optimizations
 torch.backends.cudnn.benchmark = True
@@ -337,8 +339,10 @@ if __name__ == '__main__':
     from huggingface_hub import login
     from transformers import AutoModel
 
+    hf_token = os.environ.get("HF_TOKEN")
     try:
-        login(token="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")
+        if hf_token:
+            login(token=hf_token)
     except Exception:
         print("HF login failed")
 
